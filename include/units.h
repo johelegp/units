@@ -304,45 +304,26 @@ namespace literals\
 	UNIT_ADD_LITERALS(namespaceName, abbreviation, abbreviation)
 
 /**
- * @def			UNIT_ADD_DIMENSION_TRAIT(unitdimension, baseUnit)
+ * @def			UNIT_ADD_DIMENSION_TRAIT(namespaceName, unitdimension)
  * @brief		Macro to create the `is_dimension_unit` type trait.
  * @details		This trait allows users to test whether a given type matches
  *				an intended dimension. This macro comprises all the boiler-plate
  *				code necessary to do so.
+ * @param		namespaceName namespace in which the dimension unitdimension is.
  * @param		unitdimension The name of the dimension of unit, e.g. length or mass.
  */
-
-#define UNIT_ADD_DIMENSION_TRAIT_DETAIL(unitdimension)\
-	namespace traits\
-	{\
-		/** @cond */\
-		namespace detail\
-		{\
-			template<typename T> struct is_ ## unitdimension ## _unit_impl : std::false_type {};\
-			template<typename C, typename U, typename P, typename T>\
-			struct is_ ## unitdimension ## _unit_impl<::units::unit_conversion<C, U, P, T>> : std::is_same<::units::traits::dimension_of_t<typename ::units::traits::unit_conversion_traits<::units::unit_conversion<C, U, P, T>>::dimension_type>, ::units::dimension::unitdimension>::type {};\
-			template<typename U, typename S, template<typename> class N>\
-			struct is_ ## unitdimension ## _unit_impl<::units::unit<U, S, N>> : std::is_same<::units::traits::dimension_of_t<typename ::units::traits::unit_traits<::units::unit<U, S, N>>::unit_conversion>, ::units::dimension::unitdimension>::type {};\
-		}\
-		/** @endcond */\
-	}
-
-#define UNIT_ADD_IS_UNIT_DIMENSION_TRAIT(unitdimension)\
-	namespace traits\
-	{\
-		template<typename... T>\
-		struct is_ ## unitdimension ## _unit : std::conjunction<::units::traits::detail::is_ ## unitdimension ## _unit_impl<std::decay_t<T>>...> {};\
-		template<typename... T>\
-		inline constexpr bool is_ ## unitdimension ## _unit_v = is_ ## unitdimension ## _unit<T...>::value;\
-	}
-
-#define UNIT_ADD_DIMENSION_TRAIT(unitdimension)\
-	UNIT_ADD_DIMENSION_TRAIT_DETAIL(unitdimension)\
-    /** @ingroup	TypeTraits*/\
+#define UNIT_ADD_DIMENSION_TRAIT(namespaceName, unitdimension)\
+	/** @ingroup	TypeTraits*/\
 	/** @brief		Trait which tests whether a type represents a unit of unitdimension*/\
 	/** @details	Inherits from `std::true_type` or `std::false_type`. Use `is_ ## unitdimension ## _unit_v<T>` to test the unit represents a unitdimension quantity.*/\
 	/** @tparam		T	one or more types to test*/\
-	UNIT_ADD_IS_UNIT_DIMENSION_TRAIT(unitdimension)
+	namespace traits\
+	{\
+		template<typename... T>\
+		struct is_ ## unitdimension ## _unit : std::conjunction<::units::traits::detail::is_unit_of_dimension_t<std::decay_t<T>, namespaceName::unitdimension>...> {};\
+		template<typename... T>\
+		inline constexpr bool is_ ## unitdimension ## _unit_v = is_ ## unitdimension ## _unit<T...>::value;\
+	}
 
 /**
  * @def			UNIT_ADD_WITH_METRIC_PREFIXES(nameSingular, namePlural, abbreviation, definition)
@@ -956,6 +937,31 @@ namespace units
 		using dimension_of_t = typename units::detail::dimension_of_impl<U>::type;
 	}
 
+	/** @cond */	// DOXYGEN IGNORE
+	namespace traits
+	{
+		// forward declaration
+		template<class T>
+		struct is_unit;
+
+		namespace detail
+		{
+			template<class T, class Dimension, bool IsUnit = false, bool IsUnitConversion = false>
+			struct is_unit_of_dimension : std::false_type {};
+
+			template<class T, class Dimension>
+			using is_unit_of_dimension_t = typename is_unit_of_dimension<T, Dimension, is_unit<T>::value, is_unit_conversion_v<T>>::type;
+
+			template<template<typename, typename, typename, typename> class UnitConversion, typename C, typename U, typename P, typename T, class Dimension>
+			struct is_unit_of_dimension<UnitConversion<C, U, P, T>, Dimension, false, true> : std::is_same<dimension_of_t<typename UnitConversion<C, U, P, T>::dimension_type>, Dimension>::type {};
+
+			template<template<typename, typename, template<typename> class> class Unit,typename U, typename S, template<typename> class N, class Dimension>
+			struct is_unit_of_dimension<Unit<U, S, N>, Dimension, true> : std::is_same<dimension_of_t<typename Unit<U, S, N>::unit_conversion>, Dimension>::type {};
+
+		}
+	}
+	/** @endcond */	// END DOXYGEN IGNORE
+
 	/**
 	 * @brief		Type representing an arbitrary unit.
 	 * @ingroup		UnitTypes
@@ -1468,13 +1474,6 @@ namespace units
 	//------------------------------
 
 	/** @cond */	// DOXYGEN IGNORE
-	namespace traits
-	{
-		// forward declaration
-		template<class T>
-		struct is_unit;
-	}
-
 	namespace detail
 	{
 		/**
@@ -2584,7 +2583,7 @@ namespace units
 #	pragma warning(push)
 #	pragma warning(disable : 4348)
 #endif
-	UNIT_ADD_DIMENSION_TRAIT(dimensionless)
+	UNIT_ADD_DIMENSION_TRAIT(dimension, dimensionless)
 #if defined(_MSC_VER) 
 #	pragma warning(pop)
 #endif
@@ -3154,7 +3153,7 @@ namespace units
 	UNIT_ADD(length, nauticalLeague, nauticalLeagues, nl, unit_conversion<std::ratio<3>, nauticalMiles>)
 	UNIT_ADD(length, yard, yards, yd, unit_conversion<std::ratio<3>, feet>)
 
-	UNIT_ADD_DIMENSION_TRAIT(length)
+	UNIT_ADD_DIMENSION_TRAIT(dimension, length)
 #endif
 
 	//------------------------------
@@ -3180,7 +3179,7 @@ namespace units
 	UNIT_ADD(mass, carat, carats, ct, unit_conversion<std::ratio<200>, milligrams>)
 	UNIT_ADD(mass, slug, slugs, slug, unit_conversion<std::ratio<145939029, 10000000>, kilograms>)
 
-	UNIT_ADD_DIMENSION_TRAIT(mass)
+	UNIT_ADD_DIMENSION_TRAIT(dimension, mass)
 #endif
 
 	//------------------------------
@@ -3205,7 +3204,7 @@ namespace units
 	UNIT_ADD(time, julian_year, julian_years, a_j,	unit_conversion<std::ratio<31557600>, seconds>)
 	UNIT_ADD(time, gregorian_year, gregorian_years, a_g, unit_conversion<std::ratio<31556952>, seconds>)
 
-	UNIT_ADD_DIMENSION_TRAIT(time)
+	UNIT_ADD_DIMENSION_TRAIT(dimension, time)
 #endif
 
 	//------------------------------
@@ -3229,7 +3228,7 @@ namespace units
 	UNIT_ADD(angle, turn, turns, tr, unit_conversion<std::ratio<2>, radians, std::ratio<1>>)
 	UNIT_ADD(angle, gradian, gradians, gon, unit_conversion<std::ratio<1, 400>, turns>)
 
-	UNIT_ADD_DIMENSION_TRAIT(angle)
+	UNIT_ADD_DIMENSION_TRAIT(dimension, angle)
 #endif
 
 	//------------------------------
@@ -3246,7 +3245,7 @@ namespace units
 #if !defined(DISABLE_PREDEFINED_UNITS) || defined(ENABLE_PREDEFINED_CURRENT_UNITS)
 	UNIT_ADD_WITH_METRIC_PREFIXES(current, ampere, amperes, A, unit_conversion<std::ratio<1>, units::dimension::current>)
 	
-	UNIT_ADD_DIMENSION_TRAIT(current)
+	UNIT_ADD_DIMENSION_TRAIT(dimension, current)
 #endif
 
 	//------------------------------
@@ -3271,7 +3270,7 @@ namespace units
 	UNIT_ADD(temperature, reaumur, reaumur, Re, unit_conversion<std::ratio<10, 8>, celsius>)
 	UNIT_ADD(temperature, rankine, rankine, Ra, unit_conversion<std::ratio<5, 9>, kelvin>)
 
-	UNIT_ADD_DIMENSION_TRAIT(temperature)
+	UNIT_ADD_DIMENSION_TRAIT(dimension, temperature)
 #endif
 
 	//------------------------------
@@ -3289,7 +3288,7 @@ namespace units
 #if !defined(DISABLE_PREDEFINED_UNITS) || defined(ENABLE_PREDEFINED_SUBSTANCE_UNITS)
 	UNIT_ADD(substance, mole, moles, mol, unit_conversion<std::ratio<1>, units::dimension::substance>)
 	
-	UNIT_ADD_DIMENSION_TRAIT(substance)
+	UNIT_ADD_DIMENSION_TRAIT(dimension, substance)
 #endif
 
 	//------------------------------
@@ -3307,7 +3306,7 @@ namespace units
 #if !defined(DISABLE_PREDEFINED_UNITS) || defined(ENABLE_PREDEFINED_LUMINOUS_INTENSITY_UNITS)
 	UNIT_ADD_WITH_METRIC_PREFIXES(luminous_intensity, candela, candelas, cd, unit_conversion<std::ratio<1>, units::dimension::luminous_intensity>)
 	
-	UNIT_ADD_DIMENSION_TRAIT(luminous_intensity)
+	UNIT_ADD_DIMENSION_TRAIT(dimension, luminous_intensity)
 #endif
 
 	//------------------------------
@@ -3327,7 +3326,7 @@ namespace units
 	UNIT_ADD(solid_angle, degree_squared, degrees_squared, sq_deg, squared<angle::degrees>)
 	UNIT_ADD(solid_angle, spat, spats, sp, unit_conversion<std::ratio<4>, steradians, std::ratio<1>>)
 
-	UNIT_ADD_DIMENSION_TRAIT(solid_angle)
+	UNIT_ADD_DIMENSION_TRAIT(dimension, solid_angle)
 #endif
 
 	//------------------------------
@@ -3345,7 +3344,7 @@ namespace units
 #if !defined(DISABLE_PREDEFINED_UNITS) || defined(ENABLE_PREDEFINED_FREQUENCY_UNITS)
 	UNIT_ADD_WITH_METRIC_PREFIXES(frequency, hertz, hertz, Hz, unit_conversion<std::ratio<1>, units::dimension::frequency>)
 
-	UNIT_ADD_DIMENSION_TRAIT(frequency)
+	UNIT_ADD_DIMENSION_TRAIT(dimension, frequency)
 #endif
 
 	//------------------------------
@@ -3367,7 +3366,7 @@ namespace units
 	UNIT_ADD(velocity, kilometers_per_hour, kilometers_per_hour, kph, compound_unit_conversion<length::kilometers, inverse<time::hour>>)
 	UNIT_ADD(velocity, knot, knots, kts, compound_unit_conversion<length::nauticalMiles, inverse<time::hour>>)
 	
-	UNIT_ADD_DIMENSION_TRAIT(velocity)
+	UNIT_ADD_DIMENSION_TRAIT(dimension, velocity)
 #endif
 
 	//------------------------------
@@ -3388,7 +3387,7 @@ namespace units
 	UNIT_ADD(angular_velocity, revolutions_per_minute, revolutions_per_minute, rpm, unit_conversion<std::ratio<2, 60>, radians_per_second, std::ratio<1>>)
 	UNIT_ADD(angular_velocity, milliarcseconds_per_year, milliarcseconds_per_year, mas_per_yr, compound_unit_conversion<angle::milliarcseconds, inverse<time::year>>)
 
-	UNIT_ADD_DIMENSION_TRAIT(angular_velocity)
+	UNIT_ADD_DIMENSION_TRAIT(dimension, angular_velocity)
 #endif
 
 	//------------------------------
@@ -3408,7 +3407,7 @@ namespace units
 	UNIT_ADD(acceleration, feet_per_second_squared, feet_per_second_squared, fps_sq, compound_unit_conversion<length::feet, inverse<squared<time::seconds>>>)
 	UNIT_ADD(acceleration, standard_gravity, standard_gravity, SG, unit_conversion<std::ratio<980665, 100000>, meters_per_second_squared>)
 
-	UNIT_ADD_DIMENSION_TRAIT(acceleration)
+	UNIT_ADD_DIMENSION_TRAIT(dimension, acceleration)
 #endif
 
 	//------------------------------
@@ -3430,7 +3429,7 @@ namespace units
 	UNIT_ADD(force, kilopond, kiloponds, kp, compound_unit_conversion<acceleration::standard_gravity, mass::kilograms>)
 	UNIT_ADD(force, poundal, poundals, pdl, compound_unit_conversion<mass::pound, length::foot, inverse<squared<time::seconds>>>)
 
-	UNIT_ADD_DIMENSION_TRAIT(force)
+	UNIT_ADD_DIMENSION_TRAIT(dimension, force)
 #endif
 
 	//------------------------------
@@ -3453,7 +3452,7 @@ namespace units
 	UNIT_ADD(pressure, pounds_per_square_inch, pounds_per_square_inch, psi, compound_unit_conversion<force::pounds, inverse<squared<length::inch>>>)
 	UNIT_ADD(pressure, torr, torrs, torr, unit_conversion<std::ratio<1, 760>, atmospheres>)
 	
-	UNIT_ADD_DIMENSION_TRAIT(pressure)
+	UNIT_ADD_DIMENSION_TRAIT(dimension, pressure)
 #endif
 
 	//------------------------------
@@ -3472,7 +3471,7 @@ namespace units
 	UNIT_ADD_WITH_METRIC_PREFIXES(charge, coulomb, coulombs, C, unit_conversion<std::ratio<1>, units::dimension::charge>)
 	UNIT_ADD_WITH_METRIC_PREFIXES(charge, ampere_hour, ampere_hours, Ah, compound_unit_conversion<current::ampere, time::hours>)
 
-	UNIT_ADD_DIMENSION_TRAIT(charge)
+	UNIT_ADD_DIMENSION_TRAIT(dimension, charge)
 #endif
 
 	//------------------------------
@@ -3498,7 +3497,7 @@ namespace units
 	UNIT_ADD(energy, therm, therms, thm, unit_conversion<std::ratio<100000>, british_thermal_units_59>)
 	UNIT_ADD(energy, foot_pound, foot_pounds, ftlbf, unit_conversion<std::ratio<13558179483314004, 10000000000000000>, joules>)
 
-	UNIT_ADD_DIMENSION_TRAIT(energy)
+	UNIT_ADD_DIMENSION_TRAIT(dimension, energy)
 #endif
 
 	//------------------------------
@@ -3519,7 +3518,7 @@ namespace units
 	UNIT_ADD_DECIBEL(power, watt, dBW)
 	UNIT_ADD_DECIBEL(power, milliwatt, dBm)
 	
-	UNIT_ADD_DIMENSION_TRAIT(power)
+	UNIT_ADD_DIMENSION_TRAIT(dimension, power)
 #endif
 
 	//------------------------------
@@ -3539,7 +3538,7 @@ namespace units
 	UNIT_ADD(voltage, statvolt, statvolts, statV, unit_conversion<std::ratio<1000000, 299792458>, volts>)
 	UNIT_ADD(voltage, abvolt, abvolts, abV, unit_conversion<std::ratio<1, 100000000>, volts>)
 	
-	UNIT_ADD_DIMENSION_TRAIT(voltage)
+	UNIT_ADD_DIMENSION_TRAIT(dimension, voltage)
 #endif
 
 	//------------------------------
@@ -3557,7 +3556,7 @@ namespace units
 #if !defined(DISABLE_PREDEFINED_UNITS) || defined(ENABLE_PREDEFINED_CAPACITANCE_UNITS)
 	UNIT_ADD_WITH_METRIC_PREFIXES(capacitance, farad, farads, F, unit_conversion<std::ratio<1>, units::dimension::capacitance>)
 	
-	UNIT_ADD_DIMENSION_TRAIT(capacitance)
+	UNIT_ADD_DIMENSION_TRAIT(dimension, capacitance)
 #endif
 
 	//------------------------------
@@ -3575,7 +3574,7 @@ namespace units
 #if !defined(DISABLE_PREDEFINED_UNITS) || defined(ENABLE_PREDEFINED_IMPEDANCE_UNITS)
 	UNIT_ADD_WITH_METRIC_PREFIXES(impedance, ohm, ohms, Ohm, unit_conversion<std::ratio<1>, units::dimension::impedance>)
 	
-	UNIT_ADD_DIMENSION_TRAIT(impedance)
+	UNIT_ADD_DIMENSION_TRAIT(dimension, impedance)
 #endif
 
 	//------------------------------
@@ -3593,7 +3592,7 @@ namespace units
 #if !defined(DISABLE_PREDEFINED_UNITS) || defined(ENABLE_PREDEFINED_CONDUCTANCE_UNITS)
 	UNIT_ADD_WITH_METRIC_PREFIXES(conductance, siemens, siemens, S, unit_conversion<std::ratio<1>, units::dimension::conductance>)
 	
-	UNIT_ADD_DIMENSION_TRAIT(conductance)
+	UNIT_ADD_DIMENSION_TRAIT(dimension, conductance)
 #endif
 
 	//------------------------------
@@ -3612,7 +3611,7 @@ namespace units
 	UNIT_ADD_WITH_METRIC_PREFIXES(magnetic_flux, weber, webers, Wb, unit_conversion<std::ratio<1>, units::dimension::magnetic_flux>)
 	UNIT_ADD(magnetic_flux, maxwell, maxwells, Mx, unit_conversion<std::ratio<1, 100000000>, webers>)
 
-	UNIT_ADD_DIMENSION_TRAIT(magnetic_flux)
+	UNIT_ADD_DIMENSION_TRAIT(dimension, magnetic_flux)
 #endif
 
 	//----------------------------------------
@@ -3632,7 +3631,7 @@ namespace units
 	UNIT_ADD_WITH_METRIC_PREFIXES(magnetic_field_strength, tesla, teslas, Te, unit_conversion<std::ratio<1>, units::dimension::magnetic_field_strength>)
 	UNIT_ADD(magnetic_field_strength, gauss, gauss, G, compound_unit_conversion<magnetic_flux::maxwell, inverse<squared<length::centimeter>>>)
 		
-	UNIT_ADD_DIMENSION_TRAIT(magnetic_field_strength)
+	UNIT_ADD_DIMENSION_TRAIT(dimension, magnetic_field_strength)
 #endif
 
 	//------------------------------
@@ -3650,7 +3649,7 @@ namespace units
 #if !defined(DISABLE_PREDEFINED_UNITS) || defined(ENABLE_PREDEFINED_INDUCTANCE_UNITS)
 	UNIT_ADD_WITH_METRIC_PREFIXES(inductance, henry, henries, H, unit_conversion<std::ratio<1>, units::dimension::inductance>)
 
-	UNIT_ADD_DIMENSION_TRAIT(inductance)
+	UNIT_ADD_DIMENSION_TRAIT(dimension, inductance)
 #endif
 
 	//------------------------------
@@ -3668,7 +3667,7 @@ namespace units
 #if !defined(DISABLE_PREDEFINED_UNITS) || defined(ENABLE_PREDEFINED_LUMINOUS_FLUX_UNITS)
 	UNIT_ADD_WITH_METRIC_PREFIXES(luminous_flux, lumen, lumens, lm, unit_conversion<std::ratio<1>, units::dimension::luminous_flux>)
 	
-	UNIT_ADD_DIMENSION_TRAIT(luminous_flux)
+	UNIT_ADD_DIMENSION_TRAIT(dimension, luminous_flux)
 #endif
 
 	//------------------------------
@@ -3689,7 +3688,7 @@ namespace units
 	UNIT_ADD(illuminance, lumens_per_square_inch, lumens_per_square_inch, lm_per_in_sq, compound_unit_conversion<luminous_flux::lumen, inverse<squared<length::inch>>>)
 	UNIT_ADD(illuminance, phot, phots, ph, compound_unit_conversion<luminous_flux::lumens, inverse<squared<length::centimeter>>>)
 	
-	UNIT_ADD_DIMENSION_TRAIT(illuminance)
+	UNIT_ADD_DIMENSION_TRAIT(dimension, illuminance)
 #endif
 
 	//------------------------------
@@ -3714,7 +3713,7 @@ namespace units
 	UNIT_ADD(radiation, rutherford, rutherfords, rd, unit_conversion<std::ratio<1>, megabecquerels>)
 	UNIT_ADD(radiation, rad, rads, rads, unit_conversion<std::ratio<1>, centigrays>)
 
-	UNIT_ADD_DIMENSION_TRAIT(radioactivity)
+	UNIT_ADD_DIMENSION_TRAIT(dimension, radioactivity)
 #endif
 
 	//------------------------------
@@ -3736,7 +3735,7 @@ namespace units
 	UNIT_ADD(torque, inch_pound, inch_pounds, inlb, compound_unit_conversion<length::inch, force::pounds>)
 	UNIT_ADD(torque, meter_kilogram, meter_kilograms, mkgf, compound_unit_conversion<length::meter, force::kiloponds>)
 	
-	UNIT_ADD_DIMENSION_TRAIT(torque)
+	UNIT_ADD_DIMENSION_TRAIT(dimension, torque)
 #endif
 
 	//------------------------------
@@ -3760,7 +3759,7 @@ namespace units
 	UNIT_ADD(area, hectare, hectares, ha, unit_conversion<std::ratio<10000>, square_meters>)
 	UNIT_ADD(area, acre, acres, acre, unit_conversion<std::ratio<43560>, square_feet>)
 	
-	UNIT_ADD_DIMENSION_TRAIT(area)
+	UNIT_ADD_DIMENSION_TRAIT(dimension, area)
 #endif
 
 	//------------------------------
@@ -3806,7 +3805,7 @@ namespace units
 	UNIT_ADD(volume, shot, shots, shots, unit_conversion<std::ratio<3, 2>, fluid_ounces>)
 	UNIT_ADD(volume, strike, strikes, strikes, unit_conversion<std::ratio<2>, bushels>)
 
-	UNIT_ADD_DIMENSION_TRAIT(volume)
+	UNIT_ADD_DIMENSION_TRAIT(dimension, volume)
 #endif
 
 	//------------------------------
@@ -3833,7 +3832,7 @@ namespace units
 	UNIT_ADD(density, pounds_per_gallon, pounds_per_gallon, lb_per_gal, compound_unit_conversion<mass::pounds, inverse<volume::gallon>>)
 	UNIT_ADD(density, slugs_per_cubic_foot, slugs_per_cubic_foot, slug_per_cu_ft, compound_unit_conversion<mass::slugs, inverse<volume::cubic_foot>>)
 
-	UNIT_ADD_DIMENSION_TRAIT(density)
+	UNIT_ADD_DIMENSION_TRAIT(dimension, density)
 #endif
 
 	//------------------------------
@@ -3854,7 +3853,7 @@ namespace units
 	UNIT_ADD(concentration, ppt, parts_per_trillion, ppt, unit_conversion<std::ratio<1, 1000>, parts_per_billion>)
 	UNIT_ADD(concentration, percent, percent, pct, unit_conversion<std::ratio<1, 100>, units::dimension::dimensionless>)
 
-	UNIT_ADD_DIMENSION_TRAIT(concentration)
+	UNIT_ADD_DIMENSION_TRAIT(dimension, concentration)
 #endif
 
 	//------------------------------
@@ -3875,7 +3874,7 @@ namespace units
 	UNIT_ADD_WITH_METRIC_AND_BINARY_PREFIXES(data, bit, bits, b, unit_conversion<std::ratio<1, 8>, byte>)
 	UNIT_ADD(data, exabit, exabits, Eb, unit_conversion<std::ratio<1000>, petabits>)
 
-	UNIT_ADD_DIMENSION_TRAIT(data)
+	UNIT_ADD_DIMENSION_TRAIT(dimension, data)
 #endif
 
 	//------------------------------
@@ -3896,7 +3895,7 @@ namespace units
 	UNIT_ADD_WITH_METRIC_AND_BINARY_PREFIXES(data_transfer_rate, bits_per_second, bits_per_second, bps, unit_conversion<std::ratio<1, 8>, bytes_per_second>)
 	UNIT_ADD(data_transfer_rate, exabits_per_second, exabits_per_second, Ebps, unit_conversion<std::ratio<1000>, petabits_per_second>)
 
-	UNIT_ADD_DIMENSION_TRAIT(data_transfer_rate)
+	UNIT_ADD_DIMENSION_TRAIT(dimension, data_transfer_rate)
 #endif
 
 	//------------------------------
