@@ -62,6 +62,7 @@
 #include <functional>
 #include <limits>
 #include <numeric>
+#include <range/v3/utility/common_type.hpp>
 #include <ratio>
 #include <type_traits>
 #include <utility>
@@ -368,7 +369,10 @@ namespace units
  * @param		globalUnitName the unit name prefixed with `::`, e.g. `::units::length::meter_t`
  */
 #define UNIT_ADD_COMMON_TYPE(globalUnitName) \
-	namespace std \
+	UNIT_ADD_COMMON_TYPE_IMPL(std, globalUnitName) UNIT_ADD_COMMON_TYPE_IMPL(ranges, globalUnitName)
+
+#define UNIT_ADD_COMMON_TYPE_IMPL(libNamespace, globalUnitName) \
+	namespace libNamespace \
 	{ \
 		template<typename Underlying, class ConversionFactor, class T, class NumericalScale> \
 		struct common_type<globalUnitName<Underlying>, ::units::unit<ConversionFactor, T, NumericalScale>> \
@@ -391,16 +395,16 @@ namespace units
 		}; \
 \
 		template<class Underlying, class Rep, class Period> \
-		struct common_type<globalUnitName<Underlying>, chrono::duration<Rep, Period>> \
+		struct common_type<globalUnitName<Underlying>, ::std::chrono::duration<Rep, Period>> \
 		{ \
 			using type = \
 				::units::traits::strong_t<common_type_t<::units::traits::unit_base_t<globalUnitName<Underlying>>, \
-					chrono::duration<Rep, Period>>>; \
+					::std::chrono::duration<Rep, Period>>>; \
 		}; \
 \
 		template<class Rep, class Period, class Underlying> \
-		struct common_type<chrono::duration<Rep, Period>, globalUnitName<Underlying>> \
-		  : common_type<globalUnitName<Underlying>, chrono::duration<Rep, Period>> \
+		struct common_type<::std::chrono::duration<Rep, Period>, globalUnitName<Underlying>> \
+		  : common_type<globalUnitName<Underlying>, ::std::chrono::duration<Rep, Period>> \
 		{ \
 		}; \
 \
@@ -2935,6 +2939,31 @@ namespace std
 	};
 	/** @endcond */ // END DOXYGEN IGNORE
 } // namespace std
+
+namespace ranges
+{
+	template<class ConversionFactorLhs, class Tx, class NumericalScaleLhs, class ConversionFactorRhs, class Ty,
+		class NumericalScaleRhs>
+	struct common_type<units::unit<ConversionFactorLhs, Tx, NumericalScaleLhs>,
+		units::unit<ConversionFactorRhs, Ty, NumericalScaleRhs>>
+	  : std::common_type<units::unit<ConversionFactorLhs, Tx, NumericalScaleLhs>,
+			units::unit<ConversionFactorRhs, Ty, NumericalScaleRhs>>
+	{
+	};
+
+	template<class ConversionFactor, class T, class NumericalScale, class Rep, class Period>
+	struct common_type<units::unit<ConversionFactor, T, NumericalScale>, std::chrono::duration<Rep, Period>>
+	  : common_type<units::unit<ConversionFactor, T, NumericalScale>,
+			units::unit<units::conversion_factor<Period, units::dimension::time>, Rep>>
+	{
+	};
+
+	template<class Rep, class Period, class ConversionFactor, class T, class NumericalScale>
+	struct common_type<std::chrono::duration<Rep, Period>, units::unit<ConversionFactor, T, NumericalScale>>
+	  : common_type<units::unit<ConversionFactor, T, NumericalScale>, std::chrono::duration<Rep, Period>>
+	{
+	};
+} // namespace ranges
 
 namespace units
 {
