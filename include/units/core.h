@@ -2879,6 +2879,19 @@ namespace std
 	{
 	};
 
+	template<class ConversionFactor, class Tx, class NumericalScale, class Ty>
+	struct common_type<units::unit<ConversionFactor, Tx, NumericalScale>, Ty>
+	  : enable_if<is_arithmetic_v<Ty> && units::traits::is_dimensionless_unit<ConversionFactor>::value,
+			units::unit<ConversionFactor, units::detail::detected_t<common_type_t, Tx, Ty>, NumericalScale>>
+	{
+	};
+
+	template<class Tx, class ConversionFactor, class Ty, class NumericalScale>
+	struct common_type<Tx, units::unit<ConversionFactor, Ty, NumericalScale>>
+	  : common_type<units::unit<ConversionFactor, Ty, NumericalScale>, Tx>
+	{
+	};
+
 	/** @cond */ // DOXYGEN IGNORE
 	/**
 	 * @brief		`linear_scale` preferring specializations.
