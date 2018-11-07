@@ -833,34 +833,6 @@ TEST_F(STDTypeTraits, std_common_type)
 	static_assert(std::is_same_v<
 		std::common_type_t<traits::unit_base_t<dimensionless<int>>, traits::unit_base_t<dimensionless<double>>>,
 		traits::unit_base_t<dimensionless<double>>>);
-
-	//	static_assert(std::is_same_v<std::common_type_t<millisecond_t<double>, minute_t<double>>,
-	//		std::common_type_t<minute_t<double>, millisecond_t<double>>>);
-
-	// static_assert(std::is_same_v<std::common_type_t<dimensionless<int>, int>, dimensionless<int>>);
-	// static_assert(std::is_same_v<std::common_type_t<int, dimensionless<int>>, dimensionless<int>>);
-	// static_assert(std::is_same_v<std::common_type_t<dimensionless<int>, double>, dimensionless<double>>);
-	// static_assert(std::is_same_v<std::common_type_t<double, dimensionless<int>>, dimensionless<double>>);
-	// static_assert(std::is_same_v<std::common_type_t<dimensionless<double>, int>, dimensionless<double>>);
-	// static_assert(std::is_same_v<std::common_type_t<int, dimensionless<double>>, dimensionless<double>>);
-	// static_assert(std::is_same_v<std::common_type_t<dimensionless<double>, double>, dimensionless<double>>);
-	// static_assert(std::is_same_v<std::common_type_t<double, dimensionless<double>>, dimensionless<double>>);
-	// static_assert(std::is_same_v<std::common_type_t<traits::unit_base_t<dimensionless<int>>, int>,
-	// 	traits::unit_base_t<dimensionless<int>>>);
-	// static_assert(std::is_same_v<std::common_type_t<int, traits::unit_base_t<dimensionless<int>>>,
-	// 	traits::unit_base_t<dimensionless<int>>>);
-	// static_assert(std::is_same_v<std::common_type_t<traits::unit_base_t<dimensionless<int>>, double>,
-	// 	traits::unit_base_t<dimensionless<double>>>);
-	// static_assert(std::is_same_v<std::common_type_t<double, traits::unit_base_t<dimensionless<int>>>,
-	// 	traits::unit_base_t<dimensionless<double>>>);
-	// static_assert(std::is_same_v<std::common_type_t<traits::unit_base_t<dimensionless<double>>, int>,
-	// 	traits::unit_base_t<dimensionless<double>>>);
-	// static_assert(std::is_same_v<std::common_type_t<int, traits::unit_base_t<dimensionless<double>>>,
-	// 	traits::unit_base_t<dimensionless<double>>>);
-	// static_assert(std::is_same_v<std::common_type_t<traits::unit_base_t<dimensionless<double>>, double>,
-	// 	traits::unit_base_t<dimensionless<double>>>);
-	// static_assert(std::is_same_v<std::common_type_t<double, traits::unit_base_t<dimensionless<double>>>,
-	// 	traits::unit_base_t<dimensionless<double>>>);
 }
 
 TEST_F(STDSpecializations, hash)
