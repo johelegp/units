@@ -56,10 +56,12 @@
 #define UNIT_ADD_WITH_PLURAL_TAG(namespaceName, nameSingular, namePlural, abbreviation, /*definition*/...) \
 	UNIT_ADD_UNIT_TAGS(namespaceName, nameSingular, namePlural, abbreviation##s, __VA_ARGS__) \
 	UNIT_ADD_UNIT_DEFINITION(namespaceName, nameSingular) \
-	UNIT_ADD_NAME(namespaceName, nameSingular, abbreviation) \
 	UNIT_ADD_IO(namespaceName, nameSingular, abbreviation) \
-	UNIT_ADD_LITERALS(namespaceName, nameSingular, abbreviation)
-
+	UNIT_ADD_LITERALS(namespaceName, nameSingular, abbreviation) \
+	} \
+	UNIT_ADD_SPECIALIZATIONS(namespaceName, nameSingular, abbreviation, ::units::linear_scale) \
+	namespace units \
+	{
 namespace units
 {
 	/**
