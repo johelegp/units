@@ -370,30 +370,9 @@ namespace units
 #define UNIT_ADD_COMMON_TYPE(globalUnitName) \
 	namespace std \
 	{ \
-		template<typename Underlying, class ConversionFactor, class T, class NumericalScale> \
-		struct common_type<globalUnitName<Underlying>, ::units::unit<ConversionFactor, T, NumericalScale>> \
-		{ \
-			using type = \
-				::units::traits::strong_t<common_type_t<::units::traits::unit_base_t<globalUnitName<Underlying>>, \
-					::units::unit<ConversionFactor, T, NumericalScale>>>; \
-		}; \
-\
-		template<class ConversionFactor, class T, class NumericalScale, typename Underlying> \
-		struct common_type<::units::unit<ConversionFactor, T, NumericalScale>, globalUnitName<Underlying>> \
-		  : common_type<globalUnitName<Underlying>, ::units::unit<ConversionFactor, T, NumericalScale>> \
-		{ \
-		}; \
-\
-		template<typename Underlying1, typename Underlying2> \
-		struct common_type<globalUnitName<Underlying1>, globalUnitName<Underlying2>> \
-		{ \
-			using type = globalUnitName<common_type_t<Underlying1, Underlying2>>; \
-		}; \
-\
-		template<typename UnderlyingLhs, class StrongUnit> \
-		struct common_type<globalUnitName<UnderlyingLhs>, StrongUnit> \
-		  : common_type<globalUnitName<UnderlyingLhs>, \
-				::units::detail::detected_t<::units::traits::unit_base_t, StrongUnit>> \
+		template<typename Underlying, class T> \
+		struct common_type<globalUnitName<Underlying>, T> \
+		  : ::units::detail::unit_common_type<globalUnitName<Underlying>, T> \
 		{ \
 		}; \
 	}
@@ -2849,6 +2828,45 @@ namespace units
 		 */
 		template<class Ratio1, class Ratio2>
 		using ratio_gcd = std::ratio<std::gcd(Ratio1::num, Ratio2::num), std::lcm(Ratio1::den, Ratio2::den)>;
+
+		template<class UnitLhs, class UnitRhs,
+			std::enable_if_t<std::conjunction_v<traits::is_unit<UnitLhs>, traits::is_unit<UnitRhs>,
+								 traits::is_convertible_unit<UnitLhs, UnitRhs>>,
+				int> = 0>
+		auto unit_common_type_impl()
+		{
+			using ConversionFactorLhs = typename UnitLhs::conversion_factor;
+			using ConversionFactorRhs = typename UnitRhs::conversion_factor;
+			using CommonConversionFactor =
+				traits::strong_t<conversion_factor<ratio_gcd<typename ConversionFactorLhs::conversion_ratio,
+													   typename ConversionFactorRhs::conversion_ratio>,
+					traits::dimension_of_t<ConversionFactorLhs>,
+					ratio_gcd<typename ConversionFactorLhs::pi_exponent_ratio,
+						typename ConversionFactorRhs::pi_exponent_ratio>,
+					ratio_gcd<typename ConversionFactorLhs::translation_ratio,
+						typename ConversionFactorRhs::translation_ratio>>>;
+
+			using CommonUnderlying =
+				std::common_type_t<typename UnitLhs::underlying_type, typename UnitRhs::underlying_type>;
+
+			using NumericalScale = detected_or_t<linear_scale, std::common_type_t,
+				typename UnitLhs::numerical_scale_type, typename UnitRhs::numerical_scale_type>;
+
+			using Unit = unit<CommonConversionFactor, CommonUnderlying, NumericalScale>;
+
+			if constexpr (traits::detail::is_strong_unit_alias_v<UnitLhs> ||
+				traits::detail::is_strong_unit_alias_v<UnitRhs>)
+				return traits::strong_t<Unit>{};
+			else
+				return Unit{};
+		} // namespace detail
+
+		template<class T, class U>
+		using unit_common_type_t = decltype(unit_common_type_impl<T, U>());
+
+		template<class T, class U>
+		using unit_common_type =
+			std::enable_if<is_detected_v<unit_common_type_t, T, U>, detected_t<unit_common_type_t, T, U>>;
 	}               // namespace detail
 	/** @endcond */ // END DOXYGEN IGNORE
 } // end namespace units
@@ -2863,42 +2881,11 @@ namespace std
 	 *				truncating any value of these conversions, although floating-point units may have round-off errors.
 	 *				If the units have mixed scales, preference is given to `linear_scale` for their common type.
 	 */
-	template<class ConversionFactorLhs, class Tx, class ConversionFactorRhs, class Ty, class NumericalScale>
-	struct common_type<units::unit<ConversionFactorLhs, Tx, NumericalScale>,
-		units::unit<ConversionFactorRhs, Ty, NumericalScale>>
-	  : std::enable_if<units::traits::is_same_dimension_v<ConversionFactorLhs, ConversionFactorRhs>,
-			units::unit<units::traits::strong_t<units::conversion_factor<
-							units::detail::ratio_gcd<typename ConversionFactorLhs::conversion_ratio,
-								typename ConversionFactorRhs::conversion_ratio>,
-							units::traits::dimension_of_t<ConversionFactorLhs>,
-							units::detail::ratio_gcd<typename ConversionFactorLhs::pi_exponent_ratio,
-								typename ConversionFactorRhs::pi_exponent_ratio>,
-							units::detail::ratio_gcd<typename ConversionFactorLhs::translation_ratio,
-								typename ConversionFactorRhs::translation_ratio>>>,
-				common_type_t<Tx, Ty>, NumericalScale>>
+	template<class ConversionFactor, class T, class NumericalScale, class U>
+	struct common_type<units::unit<ConversionFactor, T, NumericalScale>, U>
+	  : units::detail::unit_common_type<units::unit<ConversionFactor, T, NumericalScale>, U>
 	{
 	};
-
-	/** @cond */ // DOXYGEN IGNORE
-	/**
-	 * @brief		`linear_scale` preferring specializations.
-	 */
-	template<class ConversionFactorLhs, class Tx, class ConversionFactorRhs, class Ty>
-	struct common_type<units::unit<ConversionFactorLhs, Tx, units::linear_scale>,
-		units::unit<ConversionFactorRhs, Ty, units::decibel_scale>>
-	  : common_type<units::unit<ConversionFactorLhs, Tx, units::linear_scale>,
-			units::unit<ConversionFactorRhs, Ty, units::linear_scale>>
-	{
-	};
-
-	template<class ConversionFactorLhs, class Tx, class ConversionFactorRhs, class Ty>
-	struct common_type<units::unit<ConversionFactorLhs, Tx, units::decibel_scale>,
-		units::unit<ConversionFactorRhs, Ty, units::linear_scale>>
-	  : common_type<units::unit<ConversionFactorLhs, Tx, units::linear_scale>,
-			units::unit<ConversionFactorRhs, Ty, units::linear_scale>>
-	{
-	};
-	/** @endcond */ // END DOXYGEN IGNORE
 } // namespace std
 
 namespace units
