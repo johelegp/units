@@ -786,6 +786,23 @@ TEST_F(STDTypeTraits, std_common_type)
 		std::common_type_t<third_a_second, half_a_second>>);
 	static_assert(std::is_same_v<std::common_type_t<half_a_second, third_a_second>::underlying_type, int>);
 
+	static_assert(std::is_same_v<second_t<std::common_type_t<int, std::chrono::seconds::rep>>,
+		std::common_type_t<second_t<int>, std::chrono::seconds>>);
+	static_assert(std::is_same_v<std::common_type_t<second_t<int>, std::chrono::seconds>,
+		std::common_type_t<std::chrono::seconds, second_t<int>>>);
+	static_assert(std::is_same_v<second_t<std::common_type_t<double, std::chrono::seconds::rep>>,
+		std::common_type_t<second_t<double>, std::chrono::seconds>>);
+	static_assert(std::is_same_v<std::common_type_t<second_t<double>, std::chrono::seconds>,
+		std::common_type_t<std::chrono::seconds, second_t<double>>>);
+	static_assert(has_equivalent_conversion_factor(
+		millisecond_t<int>{}, std::common_type_t<millisecond_t<int>, std::chrono::minutes>{}));
+	static_assert(std::is_same_v<std::common_type_t<millisecond_t<int>, std::chrono::minutes>,
+		std::common_type_t<std::chrono::minutes, millisecond_t<int>>>);
+	static_assert(has_equivalent_conversion_factor(
+		millisecond_t<int>{}, std::common_type_t<std::chrono::milliseconds, minute_t<int>>{}));
+	static_assert(std::is_same_v<std::common_type_t<std::chrono::milliseconds, minute_t<int>>,
+		std::common_type_t<minute_t<int>, std::chrono::milliseconds>>);
+
 	static_assert(has_equivalent_conversion_factor(
 		std::common_type_t<kelvin_t<double>, celsius_t<double>>{}, celsius_t<double>{}));
 	static_assert(has_equivalent_conversion_factor(

@@ -390,6 +390,20 @@ namespace units
 			using type = globalUnitName<common_type_t<Underlying1, Underlying2>>; \
 		}; \
 \
+		template<class Underlying, class Rep, class Period> \
+		struct common_type<globalUnitName<Underlying>, chrono::duration<Rep, Period>> \
+		{ \
+			using type = \
+				::units::traits::strong_t<common_type_t<::units::traits::unit_base_t<globalUnitName<Underlying>>, \
+					chrono::duration<Rep, Period>>>; \
+		}; \
+\
+		template<class Rep, class Period, class Underlying> \
+		struct common_type<chrono::duration<Rep, Period>, globalUnitName<Underlying>> \
+		  : common_type<globalUnitName<Underlying>, chrono::duration<Rep, Period>> \
+		{ \
+		}; \
+\
 		template<typename UnderlyingLhs, class StrongUnit> \
 		struct common_type<globalUnitName<UnderlyingLhs>, StrongUnit> \
 		  : common_type<globalUnitName<UnderlyingLhs>, \
@@ -2876,6 +2890,27 @@ namespace std
 							units::detail::ratio_gcd<typename ConversionFactorLhs::translation_ratio,
 								typename ConversionFactorRhs::translation_ratio>>>,
 				common_type_t<Tx, Ty>, NumericalScale>>
+	{
+	};
+
+	/**
+	 * @ingroup		STDTypeTraits
+	 * @brief		common type of time unit and `std::chrono::duration` specialization
+	 */
+	template<class ConversionFactor, class T, class NumericalScale, class Rep, class Period>
+	struct common_type<units::unit<ConversionFactor, T, NumericalScale>, std::chrono::duration<Rep, Period>>
+	  : common_type<units::unit<ConversionFactor, T, NumericalScale>,
+			units::unit<units::conversion_factor<Period, units::dimension::time>, Rep>>
+	{
+	};
+
+	/**
+	 * @ingroup		STDTypeTraits
+	 * @brief		common type of time unit and `std::chrono::duration` specialization
+	 */
+	template<class Rep, class Period, class ConversionFactor, class T, class NumericalScale>
+	struct common_type<std::chrono::duration<Rep, Period>, units::unit<ConversionFactor, T, NumericalScale>>
+	  : common_type<units::unit<ConversionFactor, T, NumericalScale>, std::chrono::duration<Rep, Period>>
 	{
 	};
 
