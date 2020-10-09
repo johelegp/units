@@ -262,6 +262,10 @@ namespace units
 		{ \
 			return namespaceName::namePlural<int>(static_cast<int>(d)); \
 		} \
+	} \
+	namespace literal_constants \
+	{ \
+		constexpr namespaceName::namePlural<literal_constant_rep> abbreviation{}; \
 	}
 
 /**
@@ -450,6 +454,11 @@ namespace units
 	/**
 	 * @defgroup	STDTypeTraits Standard Type Traits Specializations
 	 * @brief		Specialization of `std::common_type` for unit types.
+	 */
+
+	/**
+	 * @defgroup	UnderlyingTypes Underlying Types
+	 * @brief		Defines a series of classes which are underlying types of Unit Types.
 	 */
 
 	//------------------------------
@@ -3910,6 +3919,209 @@ namespace std
 	{
 	};
 } // namespace std
+
+namespace units
+{
+
+	//------------------------------
+	//	Special underlying types
+	//------------------------------
+
+	/**
+	 * @ingroup		UnderlyingTypes
+	 * @brief		Describes objects that represent quantities of a given unit.
+	 * @details		Stores a value which represents a quantity in the given units. Units
+	 *				(except dimensionless units) are	 *not* convertible to arithmetic types, in order to
+	 *				provide type safety in dimensional analysis. Units	 *are* implicitly
+	 *				convertible to other units types of the same dimension, if such conversion is lossless.
+	 *				Units support various types of arithmetic operations, depending on their scale type.
+	 *
+	 *				The value of an `unit` can only be set on construction, or changed by assignment
+	 *				from another `unit` type. If necessary, the underlying value can be accessed
+	 *				using `operator()`: @code
+	 *				meter_t m(5.0);
+	 *				double val = m(); // val == 5.0	@endcode.
+	 * @tparam		ConversionFactor `conversion_factor` of the represented unit (e.g. meters)
+	 * @tparam		T underlying type of the storage. Defaults to `UNIT_LIB_DEFAULT_TYPE`.
+	 * @tparam		NumericalScale optional scale class for the units. Defaults to linear (i.e. does
+	 *				not scale the unit value). Examples of non-linear scales could be logarithmic,
+	 *				decibel, or richter scales. Numerical scales must adhere to the numerical-scale
+	 *				concept, i.e. `is_numerical_scale_v<...>` must be `true`.
+	 * @sa
+	 *				- \ref lengthUnits "length units"
+	 */
+	struct literal_constant_rep
+	{
+		literal_constant_rep() = default;
+
+		// Hack until `unit`'s underlying type support is generalized.
+		template<class T>
+		constexpr literal_constant_rep(const T&) noexcept
+		{
+		}
+
+		template<class T, std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
+		constexpr operator T() const noexcept
+		{
+			return T{1};
+		}
+
+		constexpr literal_constant_rep operator*(literal_constant_rep) const noexcept
+		{
+			return {};
+		}
+
+		constexpr literal_constant_rep operator/(literal_constant_rep) const noexcept
+		{
+			return {};
+		}
+
+		template<class T, std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
+		friend constexpr T operator*(literal_constant_rep, const T& u) noexcept
+		{
+			return u;
+		}
+
+		template<class T, std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
+		friend constexpr T operator*(const T& u, literal_constant_rep) noexcept
+		{
+			return u;
+		}
+
+		template<class T, std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
+		friend constexpr T operator/(literal_constant_rep, const T& u) noexcept
+		{
+			return T{1} / u;
+		}
+
+		template<class T, std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
+		friend constexpr T operator/(const T& u, literal_constant_rep) noexcept
+		{
+			return u;
+		}
+	};
+
+	constexpr bool operator==(literal_constant_rep, literal_constant_rep) noexcept
+	{
+		return true;
+	}
+
+	template<class T, std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
+	constexpr bool operator==(const T& u, literal_constant_rep) noexcept
+	{
+		return u == T{1};
+	}
+
+	template<class T, std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
+	constexpr bool operator==(literal_constant_rep, const T& u) noexcept
+	{
+		return u == T{1};
+	}
+
+	constexpr bool operator!=(literal_constant_rep, literal_constant_rep) noexcept
+	{
+		return false;
+	}
+
+	template<class T, std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
+	constexpr bool operator!=(const T& u, literal_constant_rep) noexcept
+	{
+		return u != T{1};
+	}
+
+	template<class T, std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
+	constexpr bool operator!=(literal_constant_rep, const T& u) noexcept
+	{
+		return u != T{1};
+	}
+
+	constexpr bool operator<(literal_constant_rep, literal_constant_rep) noexcept
+	{
+		return false;
+	}
+
+	template<class T, std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
+	constexpr bool operator<(const T& u, literal_constant_rep) noexcept
+	{
+		return u < T{1};
+	}
+
+	template<class T, std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
+	constexpr bool operator<(literal_constant_rep, const T& u) noexcept
+	{
+		return u < T{1};
+	}
+
+	constexpr bool operator>(literal_constant_rep, literal_constant_rep) noexcept
+	{
+		return false;
+	}
+
+	template<class T, std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
+	constexpr bool operator>(const T& u, literal_constant_rep) noexcept
+	{
+		return u > T{1};
+	}
+
+	template<class T, std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
+	constexpr bool operator>(literal_constant_rep, const T& u) noexcept
+	{
+		return u > T{1};
+	}
+
+	constexpr bool operator<=(literal_constant_rep, literal_constant_rep) noexcept
+	{
+		return true;
+	}
+
+	template<class T, std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
+	constexpr bool operator<=(const T& u, literal_constant_rep) noexcept
+	{
+		return u <= T{1};
+	}
+
+	template<class T, std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
+	constexpr bool operator<=(literal_constant_rep, const T& u) noexcept
+	{
+		return u <= T{1};
+	}
+
+	constexpr bool operator>=(literal_constant_rep, literal_constant_rep) noexcept
+	{
+		return true;
+	}
+
+	template<class T, std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
+	constexpr bool operator>=(const T& u, literal_constant_rep) noexcept
+	{
+		return u >= T{1};
+	}
+
+	template<class T, std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
+	constexpr bool operator>=(literal_constant_rep, const T& u) noexcept
+	{
+		return u >= T{1};
+	}
+} // namespace units
+
+namespace std
+{
+	template<>
+	struct common_type<units::literal_constant_rep, units::literal_constant_rep>
+	{
+		using type = units::literal_constant_rep;
+	};
+
+	template<class T>
+	struct common_type<T, units::literal_constant_rep> : enable_if<is_arithmetic_v<T>, T>
+	{
+	};
+
+	template<class T>
+	struct common_type<units::literal_constant_rep, T> : enable_if<is_arithmetic_v<T>, T>
+	{
+	};
+}
 
 #endif // units_core_h__
 

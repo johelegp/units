@@ -74,6 +74,15 @@ namespace
 		void TearDown() override{};
 	};
 
+	class UnderlyingType : public ::testing::Test
+	{
+	protected:
+		UnderlyingType(){};
+		virtual ~UnderlyingType(){};
+		void SetUp() override{};
+		void TearDown() override{};
+	};
+
 	class Constexpr : public ::testing::Test
 	{
 	protected:
@@ -4043,6 +4052,16 @@ TEST_F(UnitMath, fma)
 	meters<double> y(3.0);
 	square_meters<double> z(1.0);
 	EXPECT_EQ(square_meters<double>(7.0), (units::fma(x, y, z)));
+}
+
+TEST_F(UnderlyingType, natural_syntax)
+{
+	using namespace literal_constants;
+
+	EXPECT_EQ(90_km/1_hr, 90_km/hr);
+//	EXPECT_EQ(1/s, 1_Hz);
+	EXPECT_EQ(dimensionless<>{1}/s, 1_Hz);
+//	EXPECT_EQ(km/hr, 1_km/1_hr);
 }
 
 // Constexpr
